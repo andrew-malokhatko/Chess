@@ -35,6 +35,9 @@ list(APPEND GAME_SOURCE
      Classes/HelloWorldScene.cpp
      Classes/GameBody/Board.cpp
      Classes/Interface/InterfaceBoard.cpp
+     Classes/GameBody/Piece.cpp
+     Classes/GameBody/Cell.cpp
+     Classes/GameBody/AI.cpp
      )
 list(APPEND GAME_HEADER
      Classes/AppDelegate.h
@@ -42,6 +45,9 @@ list(APPEND GAME_HEADER
      Classes/GameBody/Board.h
      Classes/Interface/InterfaceBoard.h
      Classes/GameBody/Piece.h
+     Classes/GameBody/Cell.h
+     Classes/GameBody/Move.h
+     Classes/GameBody/AI.h
      )
 
 if(ANDROID)
@@ -138,3 +144,5 @@ if(LINUX OR WINDOWS)
     cocos_get_resource_path(APP_RES_DIR ${APP_NAME})
     cocos_copy_target_res(${APP_NAME} LINK_TO ${APP_RES_DIR} FOLDERS ${GAME_RES_FOLDER})
 endif()
+
+set_property(TARGET ${APP_NAME} PROPERTY CXX_STANDARD 17)
