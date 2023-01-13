@@ -10,7 +10,8 @@ struct Move
         PromoteToQueen = 1,
         PromoteToKnight = 2,
         PromoteToBishop = 3,
-        PromoteToRook = 4
+        PromoteToRook = 4,
+        KingMove = 5
     };
 
     size_t from = 0;

@@ -5,7 +5,7 @@ using PieceType = uint8_t;
 
 enum class Piece : PieceType
 {
-    Black = 0x80,
+    Black = 0x10,
 
     None = 0,
     WKing = 1,

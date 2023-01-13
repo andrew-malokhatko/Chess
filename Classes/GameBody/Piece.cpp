@@ -1,4 +1,5 @@
 #include <cassert>
+#include <cstddef>
 #include "Piece.h"
 
 bool isBlack(Piece piece)  
@@ -44,26 +45,13 @@ const char* getPieceName(Piece piece)
 
 int getPieceValue(Piece piece)
 {
-    switch (piece)
+    static constexpr int values[24] = 
     {
-        case Piece::None: return 0;
-        case Piece::WKing: return 1000;
-        case Piece::WPawn: return 10;
-        case Piece::WKnight: return 30;
-        case Piece::WBishop: return 30;
-        case Piece::WRook: return 50;
-        case Piece::WQueen: return 90;
+        0, 1000, 10, 30, 30, 50, 90, -1, 
+        -1, -1, -1, -1, -1, -1, -1, -1, 
+        -1, -1000, -10, -30, -30, -50, -90, -1
+    };
 
-        case Piece::BKing: return -1000;
-        case Piece::BPawn: return -10;
-        case Piece::BKnight: return -30;
-        case Piece::BBishop: return -30;
-        case Piece::BRook: return -50;
-        case Piece::BQueen: return -90;
-
-        default:
-            assert(false);
-            return 0;
-    }
+    return values[static_cast<size_t>(piece)];
 }
 

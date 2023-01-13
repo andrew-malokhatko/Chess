@@ -69,9 +69,19 @@ void InterfaceBoard::highlightMovesForSelectedPiece()
     }
 }
 
-void InterfaceBoard::highLightCells(std::set<Cell> cells)
+void InterfaceBoard::highLightCells(uint64_t map)
 {
-    cocos2d::Color4F red = cocos2d::Color4F( 1.0f, .2f, .2f, .6f);
+    cocos2d::Color4F red = cocos2d::Color4F( 0.0f, 0.2f, 1.0f, .6f);
+    std::vector<Cell> cells;
+    for (int i = 0; i < 64; i++)
+    {
+        if (map & 1)
+        {
+            cells.push_back(Cell{i});
+        }
+        map  = map >> 1;
+    }
+
     for (const Cell cell : cells)
     {
         highlightNode->drawDot(cocos2d::Vec2((cell % 8) * cellSize + cellSize / 2, (cell / 8) * cellSize + cellSize / 2), 20.0f, red);
@@ -85,13 +95,14 @@ void InterfaceBoard::onMouseDown(cocos2d::EventMouse* event)
         Move move = board.AIMovePiece();
         movePiece(move);
     }
-        highlightNode->clear();
+
+    highlightNode->clear();
 
     int onBoardX = (event->getCursorX() - boardNode->getPositionX()) / cellSize;
     int onBoardY = (event->getCursorY() - boardNode->getPositionY()) / cellSize;
 
     Cell cell = Cell{onBoardX, onBoardY};
-    //highLightCells(board.getThreatMap(board.WhiteToMove()));
+    highLightCells(board.getThreatMap(!board.WhiteToMove()));
     
     if (selectedPiece.isValid() == false)
     {

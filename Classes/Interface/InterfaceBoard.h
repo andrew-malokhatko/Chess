@@ -22,7 +22,7 @@ public:
     void loadPieceSprites();
     bool loadPosFromFen(std::string fen);
     void highlightMovesForSelectedPiece();
-    void highLightCells(std::set<Cell> cells);
+    void highLightCells(uint64_t map);
 
     void onMouseDown(cocos2d::EventMouse* event);
     void movePiece(Move move);

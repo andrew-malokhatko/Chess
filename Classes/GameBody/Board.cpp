@@ -65,20 +65,23 @@ Piece Board::getPiece(size_t index) const
     return board[index];
 }
 
+void Board::setPiece(size_t index, Piece piece)
+{
+    board[index] = piece;
+}
+
 void Board::movePiece(Move move)
 {
-    if (move.specailMove == Move::SpecialMoves::None)
+    board[move.to] = std::exchange(board[move.from], Piece::None);
+    
+    switch(move.specailMove)
     {
-        board[move.to] = std::exchange(board[move.from], Piece::None);
-    }
-    else
-    {
-        switch(move.specailMove)
-        {
-            case Move::SpecialMoves::PromoteToQueen:
-                board[move.from] = isWhite(board[move.from]) ? Piece::WQueen : Piece::BQueen;
-                board[move.to] = std::exchange(board[move.from], Piece::None);
-        }
+        case Move::SpecialMoves::PromoteToQueen:
+            board[move.to] = isWhite(board[move.to]) ? Piece::WQueen : Piece::BQueen;
+            break;
+        case Move::SpecialMoves::KingMove:
+            if (whiteToMove) {whiteKingPos = Cell{move.to};}
+            else {blackKingPos = Cell{move.to};};
     }
     whiteToMove = !whiteToMove;
 }
@@ -100,7 +103,7 @@ std::vector<Move> Board::getMoves(Cell cell) const
 
     case Piece::BBishop:
     case Piece::WBishop:
-        getMovesForSlidingPiece(result, SlidingPieceType::Diagonal, cell); // pass a reference to a vector or add to result
+        getMovesForSlidingPiece(result, 4, 8, cell); // pass a reference to a vector or add to result
         break;
 
     case Piece::BKnight:
@@ -110,12 +113,12 @@ std::vector<Move> Board::getMoves(Cell cell) const
 
     case Piece::BRook:
     case Piece::WRook:
-        getMovesForSlidingPiece(result, SlidingPieceType::HorzVert, cell); // pass a reference to a vector or add to result
+        getMovesForSlidingPiece(result, 0, 4, cell); // pass a reference to a vector or add to result
         break;
 
     case Piece::BQueen:
     case Piece::WQueen:
-        getMovesForSlidingPiece(result, SlidingPieceType::Both, cell); // pass a reference to a vector or add to result
+        getMovesForSlidingPiece(result, 0, 8, cell); // pass a reference to a vector or add to result
         break;
 
     case Piece::BKing:
@@ -145,7 +148,7 @@ std::vector<Move> Board::getMoves() const
 
         case Piece::BBishop:
         case Piece::WBishop:
-            getMovesForSlidingPiece(result, SlidingPieceType::Diagonal, Cell{i}); // pass a reference to a vector or add to result
+            getMovesForSlidingPiece(result, 4, 8, Cell{i}); // pass a reference to a vector or add to result
             break;
 
         case Piece::BKnight:
@@ -155,12 +158,12 @@ std::vector<Move> Board::getMoves() const
 
         case Piece::BRook:
         case Piece::WRook:
-            getMovesForSlidingPiece(result, SlidingPieceType::HorzVert, Cell{i}); // pass a reference to a vector or add to result
+            getMovesForSlidingPiece(result, 0, 4, Cell{i}); // pass a reference to a vector or add to result
             break;
 
         case Piece::BQueen:
         case Piece::WQueen:
-            getMovesForSlidingPiece(result, SlidingPieceType::Both, Cell{i}); // pass a reference to a vector or add to result
+            getMovesForSlidingPiece(result, 0, 8, Cell{i}); // pass a reference to a vector or add to result
             break;
 
         case Piece::BKing:
@@ -192,13 +195,26 @@ std::vector<Move> Board::getLegalMoves(std::vector<Move> moves) const
     return result;
 }
 
-std::set<Cell> Board::getThreatMap(bool white) const
+uint64_t Board::getThreatMap(bool white)
 {
-    std::set<Cell> result;
+    uint64_t result = 0;
+    uint64_t pieceMap = 0;
+    if (white)
+    {
+        board[blackKingPos] = Piece::None;
+    }
+    else
+    {
+        board[whiteKingPos] = Piece::None;
+    }
+
     for (size_t i = 0; i < 64; i++)
     {
         Piece piece = board[i];
-        if ((isWhite(piece) && white) || (isBlack(piece) && !white))
+        if ((isWhite(piece) && !white) || (isBlack(piece) && white))
+        {
+            continue;
+        }
 
         switch (piece)
         {
@@ -207,35 +223,41 @@ std::set<Cell> Board::getThreatMap(bool white) const
 
         case Piece::BPawn:
         case Piece::WPawn:
-            getThreatMapForPawn(result, Cell{i});
+            pieceMap = getThreatMapForPawn(Cell{i});
             break;
 
         case Piece::BBishop:
         case Piece::WBishop:
-            getThreatMapForSlidingPiece(result, SlidingPieceType::Diagonal, Cell{i}); // pass a reference to a vector or add to result
+            pieceMap = getThreatMapForSlidingPiece(4, 8, Cell{i});
             break;
 
         case Piece::BKnight:
         case Piece::WKnight:
-            getThreatMapForKnight(result, Cell{i});
+            pieceMap = getThreatMapForKnight(Cell{i});
             break;
 
         case Piece::BRook:
         case Piece::WRook:
-            getThreatMapForSlidingPiece(result, SlidingPieceType::HorzVert, Cell{i}); // pass a reference to a vector or add to result
+            pieceMap = getThreatMapForSlidingPiece(0, 4, Cell{i});
             break;
 
         case Piece::BQueen:
         case Piece::WQueen:
-            getThreatMapForSlidingPiece(result, SlidingPieceType::Both, Cell{i}); // pass a reference to a vector or add to result
+            pieceMap = getThreatMapForSlidingPiece(0, 8, Cell{i});
             break;
 
         case Piece::BKing:
         case Piece::WKing:
-            getThreatMapForKing(result, Cell{i});
+            pieceMap = getThreatMapForKing(Cell{i});
             break;
         }
+        
+        result = pieceMap | result;
     }
+
+    board[whiteKingPos] = Piece::WKing;
+    board[blackKingPos] = Piece::BKing;
+
     return result;
 }
 
@@ -246,51 +268,32 @@ bool Board::WhiteToMove()
 
 bool Board::isKingInCheck(bool white)
 {
-    std::set<Cell> opponentThreatMap = getThreatMap(!white);
-    Cell kingPos;
-    for (int i = 0; i < 64; i++)
+    uint64_t opponentThreatMap = getThreatMap(!white);
+    Cell kingPos = white ? whiteKingPos : blackKingPos;
+
+    if (opponentThreatMap >> kingPos & 1)
     {
-        if ((white && board[i] == Piece::WKing) || (!white && board[i] == Piece::BKing))
-        {
-            kingPos = Cell{i};
-        }
+        return true;
     }
-    for (Cell threatCell : opponentThreatMap)
+    return false;
+
+    /*for (int i = 0; i < 64; i++)
     {
-        if (threatCell == kingPos)
+        if ((opponentThreatMap & 1) && kingPos == i)
         {
             return true;
         }
-    }
-    return false;
+        opponentThreatMap = opponentThreatMap >> 1;
+    }*/
 }
 
-void Board::getMovesForSlidingPiece(std::vector<Move>& result, SlidingPieceType type, Cell pos) const
+void Board::getMovesForSlidingPiece(std::vector<Move>& result, size_t fromIndex, size_t toIndex, Cell pos) const
 {
     static constexpr std::array<std::pair<int, int>, 8> directions 
     {
         std::pair(1, 0), std::pair(-1, 0), std::pair(0, 1), std::pair(0, -1),   // Moves for Rook
         std::pair(1, 1), std::pair(-1, -1), std::pair(1, -1), std::pair(-1, 1)  // Moves for bishop
     };
-
-    size_t fromIndex = 0;
-    size_t toIndex = 0;
-
-    switch (type)
-    {
-        case SlidingPieceType::HorzVert:
-            fromIndex = 0;
-            toIndex = 4;
-            break;
-        case SlidingPieceType::Diagonal: 
-            fromIndex = 4;
-            toIndex = 8;
-            break;            
-        case SlidingPieceType::Both:
-            fromIndex = 0;
-            toIndex = 8;
-            break;             
-    }
 
     result.reserve(8);
 
@@ -317,7 +320,6 @@ void Board::getMovesForSlidingPiece(std::vector<Move>& result, SlidingPieceType 
 
                 break;
             }
-
             result.emplace_back(Move{pos, curPos});
         }
     }
@@ -348,7 +350,7 @@ void Board::getMovesForKing(std::vector<Move>& result, Cell pos) const
             continue;
         }
 
-        result.emplace_back(Move{pos, toMoveSquare});
+        result.emplace_back(Move{pos, toMoveSquare, Move::SpecialMoves::KingMove});
     }
 }
 
@@ -450,32 +452,15 @@ void Board::getMovesForPawn(std::vector<Move>& result, Cell pos) const
 }
 
 
-void Board::getThreatMapForSlidingPiece(std::set<Cell>& result, SlidingPieceType type, Cell pos) const
+uint64_t Board::getThreatMapForSlidingPiece(size_t fromIndex, size_t toIndex, Cell pos) const
 {
+    uint64_t result = 0;
+
     static constexpr std::array<std::pair<int, int>, 8> directions 
     {
         std::pair(1, 0), std::pair(-1, 0), std::pair(0, 1), std::pair(0, -1),   // Moves for Rook
         std::pair(1, 1), std::pair(-1, -1), std::pair(1, -1), std::pair(-1, 1)  // Moves for bishop
     };
-
-    size_t fromIndex = 0;
-    size_t toIndex = 0;
-
-    switch (type)
-    {
-        case SlidingPieceType::HorzVert:
-            fromIndex = 0;
-            toIndex = 4;
-            break;
-        case SlidingPieceType::Diagonal: 
-            fromIndex = 4;
-            toIndex = 8;
-            break;            
-        case SlidingPieceType::Both:
-            fromIndex = 0;
-            toIndex = 8;
-            break;             
-    }
 
     const Piece piece = board[pos];
     for (size_t i = fromIndex; i < toIndex; i++)
@@ -493,17 +478,20 @@ void Board::getThreatMapForSlidingPiece(std::set<Cell>& result, SlidingPieceType
             const Piece toMovePiece = board[curPos];
             if (toMovePiece != Piece::None)
             {
-                result.emplace(curPos);
+                result = result | uint64_t{ 1 } << curPos;
                 break;
             }
 
-            result.emplace(curPos);
+            result = result | uint64_t{ 1 } << curPos;
         }
     }
+    return result;
 }
 
-void Board::getThreatMapForKing(std::set<Cell>& result, Cell pos) const
+uint64_t Board::getThreatMapForKing(Cell pos) const
 {
+    uint64_t result = 0;
+
     static constexpr std::array<std::pair<int, int>, 8> moves
     {
         std::pair{1, 0}, std::pair{-1, 0}, std::pair{0, 1}, std::pair{0, -1},
@@ -519,12 +507,15 @@ void Board::getThreatMapForKing(std::set<Cell>& result, Cell pos) const
             continue;
         }
 
-        result.emplace(toMoveSquare);
+        result = result | uint64_t{ 1 } << toMoveSquare;
     }
+    return result;
 }
 
-void Board::getThreatMapForKnight(std::set<Cell>& result, Cell pos) const
+uint64_t Board::getThreatMapForKnight(Cell pos) const
 {
+    uint64_t result = 0;
+
     static constexpr std::array<std::pair<int, int>, 8> moves
     {
         std::pair{1, 2}, std::pair{2, 1}, std::pair{2, -1}, std::pair{1, -2},
@@ -540,21 +531,21 @@ void Board::getThreatMapForKnight(std::set<Cell>& result, Cell pos) const
             continue;
         }
 
-        result.emplace(toMoveSquare);
+        result = result | uint64_t{ 1 } << toMoveSquare;
     }
+    return result;
 }
 
-void Board::getThreatMapForPawn(std::set<Cell>& result, Cell pos) const
+uint64_t Board::getThreatMapForPawn(Cell pos) const
 {
-    if (pos == 15)
-    {
-        int dima = 0;
-    }
+    uint64_t result = 0;
+
     Piece piece = board[pos];
     int startRank = isWhite(piece) ? 1 : 6;
     int direction = isWhite(piece) ? 1 : -1;
+
     int rank = pos.y();
-    int file = pos.x() ;
+    int file = pos.x();
 
     int rankBeforePromotion = isWhite(piece) ? 6 : 1;
     bool oneStepBeforePromotion = rank == rankBeforePromotion;
@@ -564,14 +555,15 @@ void Board::getThreatMapForPawn(std::set<Cell>& result, Cell pos) const
     bool valid = captureMove.fromPos(file + direction, rank + direction);
     if (valid == true)
     {
-        result.emplace(captureMove);
+        result = result | uint64_t{ 1 } << captureMove;
     }
 
     valid = captureMove.fromPos(file - direction, rank + direction);
     if (valid == true)
     {
-        result.emplace(captureMove);
+        result = result | uint64_t{ 1 } << captureMove;
     }
+    return result;  
 }
 
 Move Board::AIMovePiece()
